@@ -7,7 +7,10 @@ from pathlib import Path
 import datasets
 from datasets import ClassLabel, Features, Sequence, Value
 from PIL import Image, ImageDraw
-from tqdm import tqdm
+from rich.console import Console
+from rich.progress import track
+
+console = Console()
 
 
 def load_coco_data(coco_path: Path):
@@ -60,8 +63,10 @@ def coco_to_metadata(coco_path: Path, out_path: Path):
     coco_id_to_index = {cat["id"]: idx for idx, cat in enumerate(categories)}
 
     objects = defaultdict(lambda: {"bbox": [], "category": []})
-    print(f"Processing annotations from {coco_path.name}...")
-    for ann in tqdm(data.get("annotations", []), desc="Loading annotations"):
+    console.print(f"  [dim]Loading annotations from {coco_path.name}...[/dim]")
+    for ann in track(
+        data.get("annotations", []), description="  [cyan]Processing annotations[/cyan]"
+    ):
         img_id = ann["image_id"]
         objects[img_id]["bbox"].append([float(x) for x in ann["bbox"]])
         # Map COCO category ID to contiguous index
@@ -70,7 +75,7 @@ def coco_to_metadata(coco_path: Path, out_path: Path):
 
     images = data.get("images", [])
     with out_path.open("w") as f:
-        for img in tqdm(images, desc="Writing metadata"):
+        for img in track(images, description="  [cyan]Writing metadata[/cyan]"):
             img_id = img["id"]
             row = {
                 "file_name": img["file_name"],
@@ -78,7 +83,7 @@ def coco_to_metadata(coco_path: Path, out_path: Path):
             }
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
-    print(f"Wrote {out_path} ({len(images)} images)")
+    console.print(f"  [dim]Processed {len(images):,} images[/dim]")
 
     return extract_categories(data)
 
@@ -92,20 +97,22 @@ def visualize_sample(
         entries = [json.loads(line) for line in f if line.strip()]
 
     if not entries:
-        print(f"No entries found in {metadata_path}")
+        console.print(f"  [yellow]⚠[/yellow] No entries found in {metadata_path}")
         return
 
     # Pick a random entry with objects
     entries_with_objects = [e for e in entries if e["objects"]["bbox"]]
     if not entries_with_objects:
-        print(f"No images with annotations found in {metadata_path}")
+        console.print(
+            f"  [yellow]⚠[/yellow] No images with annotations found in {metadata_path}"
+        )
         return
 
     sample = random.choice(entries_with_objects)
     image_path = image_dir / sample["file_name"]
 
     if not image_path.exists():
-        print(f"Warning: Image not found at {image_path}")
+        console.print(f"  [yellow]⚠[/yellow] Image not found at {image_path}")
         return
 
     # Load image and draw boxes
@@ -125,7 +132,9 @@ def visualize_sample(
 
     # Save visualization
     img.save(output_path)
-    print(f"Saved visualization to {output_path}")
+    console.print(
+        f"  [green]✓[/green] Saved visualization to [cyan]{output_path}[/cyan]"
+    )
 
 
 def build_features_from_coco(coco_path: Path) -> tuple[Features, list[str]]:
@@ -210,10 +219,11 @@ def push_to_hub_helper(
         token: HuggingFace API token (optional if logged in)
     """
     # Load the dataset
-    print(f"Loading dataset from {data_dir}...")
+    console.print(f"[cyan]📦 Loading dataset from {data_dir}...[/cyan]")
     dataset = load_dataset_helper(data_dir, annotation_file)
 
     # Push to hub
-    print(f"Pushing dataset to {repo_id}...")
+    console.print(f"[cyan]⬆️  Pushing dataset to [bold]{repo_id}[/bold]...[/cyan]")
     dataset.push_to_hub(repo_id, token=token, private=False)
-    print(f"✓ Dataset successfully pushed to https://huggingface.co/datasets/{repo_id}")
+    console.print("[green]✓ Dataset successfully pushed![/green]")
+    console.print(f"[cyan]🔗 View at: https://huggingface.co/datasets/{repo_id}[/cyan]")
