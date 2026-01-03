@@ -1,0 +1,38 @@
+name: CLI Smoke Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install uv
+      run: pip install uv
+
+    - name: Install package
+      run: uv pip install --system -e .
+
+    - name: Test CLI installation
+      run: coco2hf --help
+
+    - name: Test Python imports
+      run: |
+        python -c "from src.utils import load_coco_data; print('✓ load_coco_data import OK')"
+        python -c "from src.utils import coco_to_metadata; print('✓ coco_to_metadata import OK')"
+        python -c "from src.utils import push_to_hub_helper; print('✓ push_to_hub_helper import OK')"
+        python -c "from src.main import main; print('✓ main import OK')"
+
+    - name: Test version info
+      run: python -c "import sys; print(f'Python {sys.version}')"

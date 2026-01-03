@@ -1,7 +1,14 @@
 import argparse
+import os
 from pathlib import Path
 
-from src.utils import auto_detect_splits, coco_to_metadata, visualize_sample
+from src.utils import (
+    auto_detect_splits,
+    coco_to_metadata,
+    get_hf_token,
+    push_to_hub_helper,
+    visualize_sample,
+)
 
 
 def main():
@@ -34,6 +41,17 @@ def main():
         "--visualize",
         action="store_true",
         help="Generate sample visualization images with bounding boxes",
+    )
+    parser.add_argument(
+        "--push-to-hub",
+        type=str,
+        metavar="REPO_ID",
+        help="Push the dataset to HuggingFace Hub (format: username/dataset-name)",
+    )
+    parser.add_argument(
+        "--token",
+        type=str,
+        help="HuggingFace API token (defaults to HF_TOKEN env var or huggingface-cli login)",
     )
     args = parser.parse_args()
 
@@ -83,7 +101,36 @@ Expected structure:
 
 Or use --train-annotations, --validation-annotations, --test-annotations to specify paths manually."""
         print(warning_msg)
+        exit(1)
+        return
 
+    # Push to hub if requested
+    if args.push_to_hub:
+        # Get the first available annotation file for building features
+        annotation_file = None
+        for split_name in ["train", "validation", "test"]:
+            ann_path = annotations[split_name]
+            if ann_path and isinstance(ann_path, Path) and ann_path.is_file():
+                annotation_file = ann_path
+                break
+
+        if not annotation_file:
+            print("Error: No annotation file found to build dataset features")
+            exit(1)
+
+        # Get token with fallback priority
+        token = get_hf_token(args.token)
+        if not token:
+            print("Error: No HuggingFace token found!")
+            print("Please provide a token via one of these methods:")
+            print("  1. --token YOUR_TOKEN")
+            print("  2. Set HF_TOKEN environment variable")
+            print("  3. Run 'huggingface-cli login'")
+            exit(1)
+
+        # annotation_file is guaranteed to be Path here (checked above)
+        assert isinstance(annotation_file, Path)
+        push_to_hub_helper(args.data_dir, annotation_file, args.push_to_hub, token)
 
 if __name__ == "__main__":
     main()

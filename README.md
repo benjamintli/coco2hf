@@ -1,5 +1,9 @@
 # COCO to HuggingFace Format Converter
 
+![Test & Lint](https://github.com/benjamintli/coco2hf/workflows/Test%20%26%20Lint/badge.svg)
+![CLI Smoke Test](https://github.com/benjamintli/coco2hf/workflows/CLI%20Smoke%20Test/badge.svg)
+
+
 Convert COCO format annotations to HuggingFace dataset metadata format (JSONL).
 
 ## Installation
@@ -27,6 +31,11 @@ coco2hf --data-dir /path/to/coco2017 \
 
 # Generate sample visualizations
 coco2hf --data-dir /path/to/coco2017 --visualize
+
+# Push to HuggingFace Hub
+coco2hf --data-dir /path/to/coco2017 \
+  --train-annotations /path/to/instances_train2017.json \
+  --push-to-hub username/my-coco-dataset
 ```
 
 Or run directly with Python (from the virtual environment):
@@ -81,3 +90,45 @@ Each line in `metadata.jsonl` contains:
 - `--validation-annotations`: Path to validation annotations JSON (optional)
 - `--test-annotations`: Path to test annotations JSON (optional)
 - `--visualize`: Generate sample visualization images with bounding boxes
+- `--push-to-hub`: Push dataset to HuggingFace Hub (format: `username/dataset-name`)
+- `--token`: HuggingFace API token (optional, defaults to `HF_TOKEN` env var or `huggingface-cli login`)
+
+### Authentication for Hub Push
+
+When using `--push-to-hub`, the tool looks for your HuggingFace token in this order:
+
+1. `--token YOUR_TOKEN` (CLI argument)
+2. `HF_TOKEN` environment variable
+3. Token from `huggingface-cli login`
+
+If no token is found, you'll get a helpful error message with instructions.
+
+## Loading the Dataset
+
+After conversion, load your dataset with HuggingFace datasets:
+
+```python
+from datasets import load_dataset
+
+# Simple load (auto-detects metadata.jsonl)
+dataset = load_dataset("imagefolder", data_dir="path/to/data-dir")
+
+# Or use the helper function for proper typing
+from src.utils import load_dataset_helper
+from pathlib import Path
+
+dataset = load_dataset_helper(
+    data_dir=Path("path/to/data-dir"),
+    annotation_file=Path("path/to/instances_train2017.json")
+)
+
+# Access your data
+print(dataset["train"][0])
+# {
+#   "image": <PIL.Image>,
+#   "objects": {
+#     "bbox": [[x, y, w, h], ...],
+#     "category": [0, 1, ...]
+#   }
+# }
+```
