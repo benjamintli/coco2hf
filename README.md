@@ -102,33 +102,3 @@ When using `--push-to-hub`, the tool looks for your HuggingFace token in this or
 3. Token from `huggingface-cli login`
 
 If no token is found, you'll get a helpful error message with instructions.
-
-## Loading the Dataset
-
-After conversion, load your dataset with HuggingFace datasets:
-
-```python
-from datasets import load_dataset
-
-# Simple load (auto-detects metadata.jsonl)
-dataset = load_dataset("imagefolder", data_dir="path/to/data-dir")
-
-# Or use the helper function for proper typing
-from src.utils import load_dataset_helper
-from pathlib import Path
-
-dataset = load_dataset_helper(
-    data_dir=Path("path/to/data-dir"),
-    annotation_file=Path("path/to/instances_train2017.json")
-)
-
-# Access your data
-print(dataset["train"][0])
-# {
-#   "image": <PIL.Image>,
-#   "objects": {
-#     "bbox": [[x, y, w, h], ...],
-#     "category": [0, 1, ...]
-#   }
-# }
-```
