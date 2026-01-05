@@ -175,7 +175,9 @@ def load_dataset_helper(data_dir: Path, annotation_file: Path):
     return dataset
 
 
-def create_dataset_card(data_dir: Path, categories: dict, splits: list[str], repo_id: str | None = None) -> str:
+def create_dataset_card(
+    data_dir: Path, categories: dict, splits: list[str], repo_id: str | None = None
+) -> str:
     """Create a README.md dataset card for HuggingFace Hub.
 
     Args:
@@ -204,7 +206,7 @@ This dataset contains object detection annotations converted to HuggingFace imag
 ## 📊 Dataset Details
 
 - **🏷️ Number of classes**: {len(categories)}
-- **📁 Splits**: {', '.join(splits)}
+- **📁 Splits**: {", ".join(splits)}
 - **🖼️ Format**: Images with bounding box annotations
 
 ## 🎯 Classes
@@ -228,7 +230,9 @@ dataset = load_dataset("{repo_placeholder}")
 
     readme_path = data_dir / "README.md"
     readme_path.write_text(readme_content)
-    console.print(f"  [green]✓[/green] Created dataset card at [cyan]{readme_path}[/cyan]")
+    console.print(
+        f"  [green]✓[/green] Created dataset card at [cyan]{readme_path}[/cyan]"
+    )
 
     return readme_content
 
